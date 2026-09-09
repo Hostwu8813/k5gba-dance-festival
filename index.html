@@ -20,7 +20,7 @@
     @media(min-width:700px){.signup-grid{grid-template-columns:.8fr 1.2fr;align-items:start}.signup-form{padding:28px}}
     @media(max-width:699px){.nav{display:none}.header-tools{margin-left:auto}.hero{min-height:560px;padding:76px 0 20px}.hero-home{display:flex;min-height:650px;padding:0}.hero-home .hero-poster{object-fit:contain;object-position:center top;opacity:.72}.hero-home:before{background:linear-gradient(180deg,rgba(9,9,12,.05) 0%,rgba(9,9,12,.18) 40%,#09090c 78%)}.hero-home .hero-copy{position:absolute;inset:auto 16px 24px;width:auto;margin:0}.home-card{width:100%;margin:0;padding:16px 13px;box-shadow:5px 5px 0 rgba(119,37,208,.85)}.home-date strong{font-size:29px}.home-date span{font-size:11px}.home-programs{gap:5px}.home-programs div{padding:8px 4px}.home-programs b{font-size:14px}.home-card .button{font-size:11px}}
     button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--cream);outline-offset:3px}.form-hint{margin:0;color:#a99d91;font-size:11px;line-height:1.55}.form-status.success{color:#9eeb83}.form-status.error{color:#ffba63}@media(max-width:479px){.form-row{grid-template-columns:1fr}.signup-form{padding:17px}.header-tools{gap:10px}.lang-switch button{padding:7px 8px}}
-    .faculty-marquee{position:relative;margin:28px calc((100vw - min(1160px,calc(100vw - 32px)))/-2) 0;overflow:hidden;padding:0 16px 10px;cursor:grab;touch-action:pan-y;overscroll-behavior-x:contain}.faculty-marquee.is-dragging{cursor:grabbing;user-select:none}.faculty-marquee .faculty-scroll{display:flex;gap:10px;width:max-content;margin:0;padding:0;overflow:visible;transform:translate3d(calc(-50% - 5px),0,0);will-change:transform;backface-visibility:hidden;animation:faculty-loop-right var(--carousel-duration,52s) linear infinite}.faculty-loop{display:flex;flex:none;gap:10px}.faculty-scroll .teacher-card{flex:0 0 68vw;contain:layout}.faculty-marquee:before,.faculty-marquee:after{content:"";position:absolute;z-index:3;top:0;bottom:0;width:28px;pointer-events:none}.faculty-marquee:before{left:0;background:linear-gradient(90deg,#0c0b0f,transparent)}.faculty-marquee:after{right:0;background:linear-gradient(270deg,#0c0b0f,transparent)}@keyframes faculty-loop-right{from{transform:translate3d(calc(-50% - 5px),0,0)}to{transform:translate3d(0,0,0)}}@media(prefers-reduced-motion:reduce){.faculty-marquee .faculty-scroll{animation:none;transform:none;will-change:auto}}@media(min-width:700px){.faculty-marquee{margin:28px 0 0;padding:0}.faculty-scroll .teacher-card{flex-basis:235px}}
+    .faculty-marquee{position:relative;margin:28px calc((100vw - min(1160px,calc(100vw - 32px)))/-2) 0;overflow-x:auto;overflow-y:hidden;padding:0 16px 10px;scroll-snap-type:x mandatory;scroll-padding:0 16px;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}.faculty-marquee::-webkit-scrollbar{display:none}.faculty-marquee .faculty-scroll{display:flex;gap:10px;width:max-content;margin:0;padding:0}.faculty-loop{display:flex;flex:none;gap:10px}.faculty-scroll .teacher-card{flex:0 0 68vw;scroll-snap-align:start;scroll-snap-stop:always;contain:layout}.faculty-marquee:before,.faculty-marquee:after{content:"";position:absolute;z-index:3;top:0;bottom:0;width:28px;pointer-events:none}.faculty-marquee:before{left:0;background:linear-gradient(90deg,#0c0b0f,transparent)}.faculty-marquee:after{right:0;background:linear-gradient(270deg,#0c0b0f,transparent)}@media(min-width:700px){.faculty-marquee{margin:28px 0 0;padding:0;scroll-padding:0}.faculty-scroll .teacher-card{flex-basis:235px}}
   </style>
 </head>
 <body>
@@ -42,25 +42,21 @@
     const stars=[['严安祺','K5GBA_SuperStar/严安祺.png'],['胡洋洋','K5GBA_SuperStar/胡洋洋.png'],['丁蘭茜','K5GBA_SuperStar/丁蘭茜.png'],['珍珍','K5GBA_SuperStar/珍珍.png'],['Jacky','K5GBA_SuperStar/Jacky.png'],['果真','K5GBA_SuperStar/果真.png']];
     let activeLanguage='zh';
     const cards=(people,label,type)=>people.map(([name,image])=>`<article class="teacher-card ${type} ${name==='Natalie'?'natalie':''}"><img src="${image}" alt="${label} ${name}" loading="lazy" decoding="async"><div class="teacher-copy"><small>${label}</small><h3 class="brush">${name}</h3><p>${type==='star'?(activeLanguage==='en'?'Team Leader · SUPER STAR':'带队老师 · TEAM LEADER'):(activeLanguage==='en'?'Workshop Instructor':'Workshop 授课老师')}</p></div></article>`).join('');
-    const carouselCards=(people,label,type)=>{const cardSet=cards(people,label,type);const duplicate=window.matchMedia('(prefers-reduced-motion: reduce)').matches?'':`<div class="faculty-loop" aria-hidden="true">${cardSet}</div>`;return `<div class="faculty-loop">${cardSet}</div>${duplicate}`};
+    const carouselCards=(people,label,type)=>`<div class="faculty-loop">${cards(people,label,type)}</div>`;
     let facultyCarouselStops=[];
     const setupFacultyCarousels=()=>{
       facultyCarouselStops.forEach(stop=>stop()); facultyCarouselStops=[];
       ['#master-grid','#star-grid'].forEach(selector=>{
         const track=document.querySelector(selector); if(!track)return;
-        const marquee=track.closest('.faculty-marquee'),reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        if(!marquee||reduceMotion)return;
-        let pointerDown=false,dragging=false,startX=0,startY=0,startOffset=0,offset=0,resumeTimer=0;
-        const period=()=>track.querySelector('.faculty-loop').offsetWidth+10;
-        const normalize=value=>{const distance=period();while(value>0)value-=distance;while(value<=-distance)value+=distance;return value};
-        const currentOffset=()=>{const matrix=getComputedStyle(track).transform;if(matrix==='none')return 0;const values=matrix.match(/matrix(?:3d)?\\((.+)\\)/)[1].split(',');return parseFloat(values.length===16?values[12]:values[4])};
-        const freeze=()=>{clearTimeout(resumeTimer);offset=normalize(currentOffset());track.style.animation='none';track.style.transform=`translate3d(${offset}px,0,0)`};
-        const resume=()=>{clearTimeout(resumeTimer);resumeTimer=setTimeout(()=>{const progress=(offset+period())/period();track.style.transform='';track.style.animation='';track.style.animationDelay=`-${progress*52}s`},700)};
-        const down=event=>{pointerDown=true;dragging=false;startX=event.clientX;startY=event.clientY};
-        const move=event=>{if(!pointerDown)return;const dx=event.clientX-startX,dy=event.clientY-startY;if(!dragging){if(Math.abs(dy)>Math.abs(dx)){pointerDown=false;return}if(Math.abs(dx)<7)return;dragging=true;freeze();startOffset=offset;marquee.classList.add('is-dragging');marquee.setPointerCapture?.(event.pointerId)}event.preventDefault();offset=normalize(startOffset+dx);track.style.transform=`translate3d(${offset}px,0,0)`};
-        const up=event=>{if(!pointerDown&&!dragging)return;pointerDown=false;if(dragging){dragging=false;marquee.classList.remove('is-dragging');marquee.releasePointerCapture?.(event.pointerId);resume()}};
-        marquee.addEventListener('pointerdown',down);marquee.addEventListener('pointermove',move);marquee.addEventListener('pointerup',up);marquee.addEventListener('pointercancel',up);
-        facultyCarouselStops.push(()=>{clearTimeout(resumeTimer);marquee.removeEventListener('pointerdown',down);marquee.removeEventListener('pointermove',move);marquee.removeEventListener('pointerup',up);marquee.removeEventListener('pointercancel',up)})
+        const marquee=track.closest('.faculty-marquee'); if(!marquee)return;
+        let timer=0;
+        const cardStep=()=>track.querySelector('.teacher-card').getBoundingClientRect().width+10;
+        const schedule=()=>{clearTimeout(timer);if(window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;timer=setTimeout(advance,4000)};
+        const advance=()=>{const step=cardStep(),max=marquee.scrollWidth-marquee.clientWidth,next=marquee.scrollLeft+step;if(next>=max-2)marquee.scrollTo({left:0,behavior:'auto'});else marquee.scrollTo({left:next,behavior:'smooth'});schedule()};
+        const pause=()=>clearTimeout(timer);
+        marquee.addEventListener('pointerdown',pause,{passive:true});marquee.addEventListener('pointerup',schedule,{passive:true});marquee.addEventListener('pointercancel',schedule,{passive:true});
+        schedule();
+        facultyCarouselStops.push(()=>{clearTimeout(timer);marquee.removeEventListener('pointerdown',pause);marquee.removeEventListener('pointerup',schedule);marquee.removeEventListener('pointercancel',schedule)})
       })
     };
     document.querySelector('#master-grid').innerHTML=carouselCards(masters,'MASTER','');
